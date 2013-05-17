@@ -1,0 +1,17 @@
+{
+    "git": {
+        "summary" : "distributed source control",
+        "install" : null,
+        "preArgs" : null,
+        "postArgs" : null,
+        "commands" : {
+            "checkout": {
+                "summary" : "checks out a branch",
+                "install" : null,
+                "preArgs" : null,
+                "postArgs" : null,
+                "commands": null
+            }
+        }
+    }
+}

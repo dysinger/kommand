@@ -1,0 +1,27 @@
+name:                kommand
+version:             0.1.0.0
+synopsis:            CLI Help & Discovery for Teamwork
+homepage:            http://github.com/Knewton/kommand
+license:             OtherLicense
+license-file:        LICENSE
+author:              Tim Dysinger
+maintainer:          tim@knewton.com
+category:            System
+build-type:          Simple
+cabal-version:       >=1.8
+
+executable k
+  main-is:             Main.hs
+  build-depends:       base ==4.5.*
+                     , aeson
+                     , bytestring
+                     , conduit
+                     , directory
+                     , filepath
+                     , ghc-prim
+                     , http-conduit
+                     , old-time
+                     , shelly
+                     , text
+                     , unix
+                     , unordered-containers
