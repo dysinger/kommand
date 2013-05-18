@@ -1,0 +1,14 @@
+#!+TITLE: Kommand
+
+* TODO get some help output going (output on a command with no path or with --help)
+* TODO try forking/execing up some subprocesses with System.Posix.Process & see how that feels
+* TODO build GHC & LLVM on Ubuntu 12.04 & Ubuntu 13.04
+* TODO how do we deal with things like `k s3 put -e utility -b knewton-public-src -i file` which has pipes and s3 & put are separated
+* TODO allow for some apps to misbehave wrt file discriptors or exit signals
+* TODO optparse-applicative again maybe? or at least use it for an example of good clean output
+* TODO need to add groupings to the design of the json structure
+* TODO try pipes for http download & for passing IO around (if needed)
+* TODO aeson barfs when optional maybe elements are present. do we need to build our own FromJSON?
+* TODO check for chef & download/install if not present
+* TODO offer to run 'install' kommand attribute with chef-solo if command not present (& current version?)
+* TODO be super clear & helpful if a process exits abnormally

@@ -1,79 +1,89 @@
-{-# LANGUAGE BangPatterns               #-}
-{-# LANGUAGE DeriveDataTypeable         #-}
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE ExtendedDefaultRules       #-}
-{-# LANGUAGE GADTs                      #-}
-{-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE QuasiQuotes                #-}
-{-# LANGUAGE RankNTypes                 #-}
-{-# LANGUAGE RecordWildCards            #-}
-{-# LANGUAGE TemplateHaskell            #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# OPTIONS_GHC -fno-warn-orphans       #-}
-{-# OPTIONS_GHC -fno-warn-type-defaults #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
+import           Control.Applicative
 import           Control.Monad
 import           Data.Aeson
-import qualified Data.ByteString.Lazy  as B
-import           Data.Conduit
-import           Data.Conduit.Binary
-import           Data.Data
-import           Data.HashMap.Lazy
-import           Data.Text.Lazy        (Text)
-import           GHC.Generics
-import           Network.HTTP.Conduit
-import           Prelude               hiding (FilePath)
+import           Data.Char
+import qualified Data.ByteString.Lazy  as BS
+import           Data.Time.Clock
+import           Network.HTTP
 import           System.Directory
 import           System.Environment
+import           System.Exit
 import           System.FilePath.Posix
-import           System.Time
+import           System.Posix.Process
 
-default (Text)
+data Kommand = Kommand { _id          :: String
+                       , _aliases     :: Maybe [String]
+                       , _commands    :: Maybe [Kommand]
+                       , _description :: Maybe [String]
+                       , _install     :: Maybe String
+                       , _path        :: Maybe FilePath
+                       , _synopsis    :: String
+                       , _url         :: Maybe String }
 
-data Kommand = Kommand { summary  :: Text
-                       , install  :: Maybe Text
-                       , preArgs  :: Maybe Text
-                       , postArgs :: Maybe Text
-                       , commands :: Maybe (HashMap Text Kommand)
-                       }
-             deriving (Data, Generic, Show, Typeable)
+instance FromJSON Kommand where
+  parseJSON (Object v) = Kommand             <$>
+                         v .:  "id"          <*>
+                         v .:? "aliases"     <*>
+                         v .:? "commands"    <*>
+                         v .:? "description" <*>
+                         v .:? "install"     <*>
+                         v .:? "path"        <*>
+                         v .:  "synopsis"    <*>
+                         v .:? "url"
+  parseJSON _          = mzero
 
-instance FromJSON Kommand
+instance Show Kommand where
+  show (Kommand {_path = Nothing,   ..}) = _id
+  show (Kommand {_path = Just path, ..}) = path
+
+data Stack = Stack [Kommand] [String]
 
 main :: IO ()
 main = do
-  args <- getArgs
-  whenM needToFetchKommands fetchKommandsFile
-  putStrLn . show $ args
-  putStrLn . show =<< readKommandsFile
+  result <- kommands
+  case result of
+    Left er  -> print er >> exitImmediately (ExitFailure 1)
+    Right ks -> do
+      as <- getArgs
+      let p@(Stack (k':ks') as') = split ks as
+      case (_description k') of
+        Just ls -> mapM_ putStrLn ls >> exitImmediately ExitSuccess
+        Nothing -> exitImmediately (ExitFailure 1)
+
+split :: [Kommand] -> [String] -> Stack
+split ks as = Stack foundKommands leftOverArgs
   where
-    whenM :: forall (m :: * -> *). Monad m => m Bool -> m () -> m ()
-    whenM x y = join (ap (liftM when x) (return y))
+    (_, foundKommands, leftOverArgs) = foldl reduce (Just ks, [], []) as
+    reduce (Nothing,    ks', as') a = (Nothing, ks', a:as')
+    reduce (Just leafs, ks', as') a =
+      case (filter (match a) leafs) of
+        []    -> (Nothing,       ks', a:as')
+        (k:_) -> (_commands k, k:ks',   as')
+    match x (Kommand {_aliases = Nothing, ..}) = _id == x
+    match x (Kommand {_aliases = Just xs, ..}) =
+      any ((==) (map toLower x)) (_id:xs)
 
-needToFetchKommands :: IO Bool
-needToFetchKommands = do
-  fileName <- kommandsFileName
-  exists   <- doesFileExist fileName
+kommands :: IO (Either String [Kommand])
+kommands = do
+  fname  <- filename
+  exists <- doesFileExist fname
   if (not exists)
-    then return True
-    else do currentTime <- getClockTime
-            modTime     <- getModificationTime fileName
-            let diff = diffClockTimes currentTime modTime
-            return (tdDay diff > 1)
+    then fetchJSON >> readJSON
+    else do rightNow <- getCurrentTime
+            modTime  <- getModificationTime fname
+            if (diffUTCTime rightNow modTime > 60*60)
+              then fetchJSON >> readJSON
+              else readJSON
+  where
+    readJSON  = filename >>= BS.readFile >>= return . eitherDecode
+    fetchJSON =
+      simpleHTTP (getRequest "http://hackage.haskell.org/") >> return ()
 
-fetchKommandsFile :: IO ()
-fetchKommandsFile = do
-  fileName <- kommandsFileName
-  request  <- parseUrl "https://s3.amazonaws.com/knewton-public-src/kommands.json"
-  withManager $ \manager -> do
-    response <- http request manager
-    responseBody response $$+- sinkFile fileName
-
-readKommandsFile :: IO (Either String (HashMap Text Kommand))
-readKommandsFile = do
-  fileName   <- kommandsFileName
-  byteString <- B.readFile fileName
-  return . eitherDecode' $ byteString
-
-kommandsFileName :: IO FilePath
-kommandsFileName = return . flip (</>) ".kommands.json" =<< getHomeDirectory
+filename :: IO FilePath
+filename = do
+  home <- getHomeDirectory
+  return $ home </> ".kommands.json"
