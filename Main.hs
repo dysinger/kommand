@@ -55,9 +55,9 @@ data Stack = Stack [Kommand] [String]
 split :: Stack -> Stack
 split (Stack ks as) = Stack foundKommands leftOverArgs
   where
-    (_, foundKommands, leftOverArgs) = foldl reduce (Just ks, [], []) as
-    reduce (Nothing,    ks', as') a = (Nothing, ks', a:as')
-    reduce (Just leafs, ks', as') a =
+    (_, foundKommands, leftOverArgs) = foldl sort (Just ks, [], []) as
+    sort (Nothing,    ks', as') a = (Nothing, ks', a:as')
+    sort (Just leafs, ks', as') a =
       case (filter (match a) leafs) of
         []    -> (Nothing,       ks', a:as')
         (k:_) -> (_commands k, k:ks',   as')
