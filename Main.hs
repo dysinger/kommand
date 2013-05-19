@@ -134,9 +134,9 @@ execute initialStack = do
     stackHelp   (Stack []    _) = mzero
     stackHelp s@(Stack (k:_) _) = do
       case (_description k) of
-        Just ls -> divider >> mapM_ putStrLn ls >> divider
+        Just ls -> divider >> mapM_ putStrLn ls
         Nothing -> mzero
-      run s
+      divider >> run s
     divider = putStrLn $ "\n" ++ replicate 80 '-' ++ "\n"
     run (Stack []    _ ) = mzero
     run (Stack (k:_) as) = let n = Nothing in
