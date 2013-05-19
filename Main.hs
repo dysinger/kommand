@@ -65,6 +65,12 @@ kmdStack (Stack ks as) = Stack foundKommands leftOverArgs
     match x (Kommand {_aliases = Just xs, ..}) =
       any ((==) (map toLower x)) (_id:xs)
 
+-- | Take the Stack containing Kommands that matched and remainer
+-- args.  Build a new Stack by transforming Kommands into args until
+-- we can find a parent that has a path.
+exeStack :: Stack -> Stack
+exeStack (Stack (k:ks) as) = undefined
+
 -- | Lazily keep the kommands json file in sync with what we can find
 -- on the internet.
 kommands :: IO (Either String [Kommand])
