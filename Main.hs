@@ -28,8 +28,8 @@ import           Network.HTTP
 import           System.Directory
 import           System.Environment
 import           System.Exit
-import           System.FilePath.Posix
-import           System.Posix.Process
+import           System.FilePath
+import           System.Process
 
 -- | The Kommand data type contains the attributes of each Kommand.
 data Kommand = Kommand { _id          :: String
