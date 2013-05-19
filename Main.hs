@@ -45,29 +45,8 @@ instance Show Kommand where
   show (Kommand {_path = Just path, ..}) = path
   show (Kommand {_path = Nothing,   ..}) = _id
 
--- | Define a stack of Kommands and Strings
+-- | Define a Stack of Kommands and Strings
 data Stack = Stack [Kommand] [String]
-
--- | Main program entry point.
-main :: IO ()
-main = do
-  result <- kommands
-  case result of
-    Left er  -> print er >> exitImmediately (ExitFailure 1)
-    Right ks -> do
-      as <- getArgs
-      let p@(Stack (k':ks') as') = split (Stack ks as)
-
-      -- if the first kommand in the stack is a path
-      --   then if --help flag was given
-      --        then print help
-      --        else call the kommand with args
-      --   else add the kommand to the stack of argsc
-      --        and look at the parent kommand (tail)
-
-      case (_description k') of
-        Just ls -> mapM_ putStrLn ls >> exitImmediately ExitSuccess
-        Nothing -> exitImmediately (ExitFailure 1)
 
 -- | Take the Stack of possible Kommands we read from disk and the
 -- args given at the command line.  Build a new Stack containing the
@@ -110,3 +89,24 @@ filename :: IO FilePath
 filename = do
   home <- getHomeDirectory
   return $ home </> ".kommands.json"
+
+-- | Main program entry point.
+main :: IO ()
+main = do
+  result <- kommands
+  case result of
+    Left er  -> print er >> exitImmediately (ExitFailure 1)
+    Right ks -> do
+      as <- getArgs
+      let p@(Stack (k':ks') as') = split (Stack ks as)
+
+      -- if the first kommand in the stack is a path
+      --   then if --help flag was given
+      --        then print help
+      --        else call the kommand with args
+      --   else add the kommand to the stack of argsc
+      --        and look at the parent kommand (tail)
+
+      case (_description k') of
+        Just ls -> mapM_ putStrLn ls >> exitImmediately ExitSuccess
+        Nothing -> exitImmediately (ExitFailure 1)
