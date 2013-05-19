@@ -83,8 +83,8 @@ argsToKommands (Stack ks as) = Stack foundKommands leftOverArgs
 
 -- | Take a Stack and build a new Stack by popping Kommands onto the
 -- args list until we can find a Kommand that has an executable path.
-kommandsToArgs :: Stack -> Stack
-kommandsToArgs _ = undefined
+findExecutable :: Stack -> Stack
+findExecutable _ = undefined
 
 -- | Lazily keep the kommands json file in sync with what we can find
 -- on the internet.
