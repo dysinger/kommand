@@ -1,5 +1,22 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 
+{-|
+Module      :  Main
+Description :  Main module to interact with the command line user.
+Copyright   :  (c) 2013 Knewton & authors
+License     :  Apache2
+
+Maintainer  :  Tim Dysinger <tim@knewton.com>
+Stability   :  experimental
+Portability :  non-portable (Linux or Mac)
+
+This module will intercept & proxy command line commands.  It will
+provide Bash & Zsh completion of the commands it knows about
+(described in a JSON document.)  This app assists in search/discovery
+& help on the CLI.  It is intended to help teams develop a common set
+of CLI tools.
+|-}
+
 import           Control.Applicative
 import           Control.Monad
 import           Data.Aeson
