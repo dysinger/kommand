@@ -96,12 +96,12 @@ kommands = do
   fname  <- filename
   exists <- doesFileExist fname
   if (not exists)
-    then fetchJSON >> readJSON
+    then fetchJSON
     else do rightNow <- getCurrentTime
             modTime  <- getModificationTime fname
-            if (diffUTCTime rightNow modTime > 60*60)
-              then fetchJSON >> readJSON
-              else readJSON
+            when (diffUTCTime rightNow modTime > 60*60)
+              fetchJSON
+  readJSON
   where
     readJSON  = filename >>= BS.readFile >>= return . eitherDecode
     -- FIXME inspect the response write the file from the response body
