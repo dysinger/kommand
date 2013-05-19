@@ -15,6 +15,7 @@ import           System.Exit
 import           System.FilePath.Posix
 import           System.Posix.Process
 
+-- | The Kommand data type contains the attributes of each Kommand.
 data Kommand = Kommand { _id          :: String
                        , _aliases     :: Maybe [String]
                        , _commands    :: Maybe [Kommand]
@@ -24,6 +25,7 @@ data Kommand = Kommand { _id          :: String
                        , _synopsis    :: String
                        , _url         :: Maybe String }
 
+-- | Instance of FromJSOM so we can map JSON records to Kommand.
 instance FromJSON Kommand where
   parseJSON (Object v) = Kommand             <$>
                          v .:  "id"          <*>
@@ -36,12 +38,17 @@ instance FromJSON Kommand where
                          v .:? "url"
   parseJSON _          = mzero
 
+-- | Printing a Kommand should show it's full path by default. If the
+-- path isn't given then the kommand is a subcommand or flag.  In this
+-- case we print it's id.
 instance Show Kommand where
-  show (Kommand {_path = Nothing,   ..}) = _id
   show (Kommand {_path = Just path, ..}) = path
+  show (Kommand {_path = Nothing,   ..}) = _id
 
+-- | Define a stack of Kommands and Strings
 data Stack = Stack [Kommand] [String]
 
+-- | Main program entry point.
 main :: IO ()
 main = do
   result <- kommands
@@ -49,13 +56,25 @@ main = do
     Left er  -> print er >> exitImmediately (ExitFailure 1)
     Right ks -> do
       as <- getArgs
-      let p@(Stack (k':ks') as') = split ks as
+      let p@(Stack (k':ks') as') = split (Stack ks as)
+
+      -- if the first kommand in the stack is a path
+      --   then if --help flag was given
+      --        then print help
+      --        else call the kommand with args
+      --   else add the kommand to the stack of argsc
+      --        and look at the parent kommand (tail)
+
       case (_description k') of
         Just ls -> mapM_ putStrLn ls >> exitImmediately ExitSuccess
         Nothing -> exitImmediately (ExitFailure 1)
 
-split :: [Kommand] -> [String] -> Stack
-split ks as = Stack foundKommands leftOverArgs
+-- | Take the Stack of possible Kommands we read from disk and the
+-- args given at the command line.  Build a new Stack containing the
+-- Kommands, that matched args, plus the remainder of the args that
+-- didn't match.
+split :: Stack -> Stack
+split (Stack ks as) = Stack foundKommands leftOverArgs
   where
     (_, foundKommands, leftOverArgs) = foldl reduce (Just ks, [], []) as
     reduce (Nothing,    ks', as') a = (Nothing, ks', a:as')
@@ -67,6 +86,8 @@ split ks as = Stack foundKommands leftOverArgs
     match x (Kommand {_aliases = Just xs, ..}) =
       any ((==) (map toLower x)) (_id:xs)
 
+-- | Lazily keep the kommands json file in sync with what we can find
+-- on the internet.
 kommands :: IO (Either String [Kommand])
 kommands = do
   fname  <- filename
@@ -80,9 +101,11 @@ kommands = do
               else readJSON
   where
     readJSON  = filename >>= BS.readFile >>= return . eitherDecode
+    -- FIXME inspect the response write the file from the response body
     fetchJSON =
       simpleHTTP (getRequest "http://hackage.haskell.org/") >> return ()
 
+-- | Calculate the location of our cached json file.
 filename :: IO FilePath
 filename = do
   home <- getHomeDirectory
