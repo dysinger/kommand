@@ -29,6 +29,7 @@ import           System.Directory
 import           System.Environment
 import           System.Exit
 import           System.FilePath
+import           System.IO
 import           System.Process
 
 -- | The Kommand data type contains the attributes of each Kommand.
