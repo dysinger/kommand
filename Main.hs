@@ -86,6 +86,11 @@ argsToKommands (Stack ks as) = Stack foundKommands leftOverArgs
 findExecutable :: Stack -> Stack
 findExecutable _ = undefined
 
+-- | Take a Stack and build a new Stack by popping Kommands onto the
+-- args list until we can find a Kommand that has a description.
+findHelp :: Stack -> Stack
+findHelp _ = undefined
+
 -- | Lazily keep the kommands json file in sync with what we can find
 -- on the internet.
 kommands :: IO (Either String [Kommand])
