@@ -67,12 +67,11 @@ instance Show Kommand where
 -- | Define a Stack of Kommands and Strings
 data Stack = Stack [Kommand] [String]
 
--- | Take the Stack of possible Kommands we read from disk and the
--- args given at the command line.  Build a new Stack containing the
--- Kommands, that matched args, plus the remainder of the args that
--- didn't match.
-kmdStack :: Stack -> Stack
-kmdStack (Stack ks as) = Stack foundKommands leftOverArgs
+-- | Take a Stack and build a new Stack containing the Kommands (in
+-- order), that matched args in the list (in order), plus the
+-- remainder of the args that didn't match.
+argsToKommands :: Stack -> Stack
+argsToKommands (Stack ks as) = Stack foundKommands leftOverArgs
   where
     (_, foundKommands, leftOverArgs) = foldl sort (Just ks, [], []) as
     sort (Nothing,    ks', as') a = (Nothing, ks', a:as')
@@ -84,11 +83,10 @@ kmdStack (Stack ks as) = Stack foundKommands leftOverArgs
     match x (Kommand {_aliases = Just xs, ..}) =
       any ((==) (map toLower x)) (_id:xs)
 
--- | Take the Stack containing Kommands that matched and remainder
--- args.  Build a new Stack by transforming Kommands into args until
--- we can find a parent that has a path.
-exeStack :: Stack -> Stack
-exeStack (Stack (k:ks) as) = undefined
+-- | Take a Stack and build a new Stack by popping Kommands onto the
+-- args list until we can find a Kommand that has an executable path.
+kommandsToArgs :: Stack -> Stack
+kommandsToArgs _ = undefined
 
 -- | Lazily keep the kommands json file in sync with what we can find
 -- on the internet.
@@ -116,23 +114,35 @@ filename = do
   home <- getHomeDirectory
   return $ home </> ".kommands.json"
 
+-- | Execute transforms the initial stack from args into Kommands.  It
+-- then routes the stack to the appropriate function.
+execute :: Stack -> IO ()
+execute initialStack = do
+  case (argsToKommands initialStack) of
+    (Stack [] [])            -> mainHelp
+    (Stack [] ("-h":_))      -> mainHelp
+    (Stack [] ("--help":_))  -> mainHelp
+    s@(Stack [] _)           -> run s
+    s@(Stack _ ("-h":_))     -> stackHelp s
+    s@(Stack _ ("--help":_)) -> stackHelp s
+    s                        -> run s
+  where
+    mainHelp = putStrLn "OHAI!"
+    stackHelp    (Stack []    _) = mzero
+    stackHelp s@ (Stack (k:_) _) = do
+      case (_description k) of
+        Just ls -> divider >> mapM_ putStrLn ls >> divider
+        Nothing -> mzero
+      run s
+    divider = putStrLn $ "\n" ++ replicate 80 '-' ++ "\n"
+    run (Stack []    _ ) = mzero
+    run (Stack (k:_) as) = let n = Nothing in
+      runProcess (show k) as n n n n n >>= waitForProcess >>= exitWith
+
 -- | Main program entry point.
 main :: IO ()
 main = do
   result <- kommands
-  case result of
-    Left er  -> print er >> exitImmediately (ExitFailure 1)
-    Right ks -> do
-      as <- getArgs
-      let p@(Stack (k':ks') as') = kmdStack (Stack ks as)
-
-      -- if the first kommand in the stack is a path
-      --   then if --help flag was given
-      --        then print help
-      --        else call the kommand with args
-      --   else add the kommand to the stack of argsc
-      --        and look at the parent kommand (tail)
-
-      case (_description k') of
-        Just ls -> mapM_ putStrLn ls >> exitImmediately ExitSuccess
-        Nothing -> exitImmediately (ExitFailure 1)
+  case result of -- JSON parse error
+    Left er  -> hPutStrLn stderr er >> exitWith (ExitFailure 1)
+    Right ks -> execute . Stack ks =<< getArgs
