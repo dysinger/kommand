@@ -136,6 +136,9 @@ execute initialStack = do
       case (_description k) of
         Just ls -> divider >> mapM_ putStrLn ls
         Nothing -> mzero
+      case (_examples k) of
+        Just ls -> divider >> mapM_ putStrLn ls
+        Nothing -> mzero
       divider >> run s
     divider = putStrLn $ "\n" ++ replicate 80 '-' ++ "\n"
     run (Stack []    _ ) = mzero
