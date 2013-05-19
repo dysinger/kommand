@@ -3,18 +3,19 @@
 {-|
 Module      :  Main
 Description :  Main module to interact with the command line user.
-Copyright   :  (c) 2013 Knewton & authors
+Copyright   :  (c) 2013 Knewton
 License     :  Apache2
 
-Maintainer  :  Tim Dysinger <tim@knewton.com>
+Maintainer  :  Tim Dysinger <tim@dysinger.net>
 Stability   :  experimental
 Portability :  non-portable (Linux or Mac)
 
-This module will intercept & proxy command line commands.  It will
+This module will intercept & proxy command line commands.  But serving
+as a proxy, this app can assist in the form of guidance This app
+assists in search/discovery & help on the CLI.  It is intended to help
+teams develop a common set of CLI tools.  It will (in the future)
 provide Bash & Zsh completion of the commands it knows about
-(described in a JSON document.)  This app assists in search/discovery
-& help on the CLI.  It is intended to help teams develop a common set
-of CLI tools.
+(described in a JSON document.)
 |-}
 
 import           Control.Applicative
@@ -82,7 +83,7 @@ kmdStack (Stack ks as) = Stack foundKommands leftOverArgs
     match x (Kommand {_aliases = Just xs, ..}) =
       any ((==) (map toLower x)) (_id:xs)
 
--- | Take the Stack containing Kommands that matched and remainer
+-- | Take the Stack containing Kommands that matched and remainder
 -- args.  Build a new Stack by transforming Kommands into args until
 -- we can find a parent that has a path.
 exeStack :: Stack -> Stack
