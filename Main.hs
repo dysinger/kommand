@@ -106,7 +106,8 @@ kommands = do
     readJSON  = filename >>= BS.readFile >>= return . eitherDecode
     -- FIXME inspect the response write the file from the response body
     fetchJSON =
-      simpleHTTP (getRequest "http://hackage.haskell.org/") >> return ()
+      let req = getRequest "http://s3.amazonaws.com/knewton-public-src/kommands.json"
+      in simpleHTTP req >> return ()
 
 -- | Calculate the location of our cached json file.
 filename :: IO FilePath
