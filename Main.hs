@@ -21,8 +21,8 @@ provide Bash & Zsh completion of the commands it knows about
 import           Control.Applicative
 import           Control.Monad
 import           Data.Aeson
-import           Data.Char
 import qualified Data.ByteString.Lazy  as BS
+import           Data.Char
 import           Data.Time.Clock
 import           Network.HTTP
 import           System.Directory
