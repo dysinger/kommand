@@ -59,8 +59,8 @@ instance FromJSON Kommand where
 -- path isn't given then the kommand is a subcommand or flag.  In this
 -- case we print it's id.
 instance Show Kommand where
-  show (Kommand {_path = Just path, ..}) = path
-  show (Kommand {_path = Nothing,   ..}) = _id
+  show (Kommand {_path = Nothing, _id = i}) = i
+  show (Kommand {_path = Just p}) = p
 
 -- | Define a Stack of Kommands and Strings
 data Stack = Stack [Kommand] [String]
