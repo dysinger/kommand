@@ -13,14 +13,22 @@ cabal-version:       >=1.14
 executable k
   main-is:             Main.hs
   default-language:    Haskell2010
-  default-extensions:  TemplateHaskell
-  ghc-options:         -fllvm -O2 -static -Wall
+  default-extensions:  RankNTypes
+                       TemplateHaskell
+                       TypeFamilies
+  ghc-options:         -Odph
+                       -Wall
+                       -fllvm
+                       -optlo-O3
+                       -rtsopts
+                       -static
+                       -threaded
   build-depends:       base
                      , HTTP
                      , aeson
                      , bytestring
                      , directory
                      , filepath
+                     , process
                      , time
                      , unix
-x
