@@ -35,6 +35,7 @@ data Kommand = Kommand { _id          :: String
                        , _aliases     :: Maybe [String]
                        , _commands    :: Maybe [Kommand]
                        , _description :: Maybe [String]
+                       , _examples    :: Maybe [String]
                        , _install     :: Maybe String
                        , _path        :: Maybe FilePath
                        , _synopsis    :: String
@@ -47,6 +48,7 @@ instance FromJSON Kommand where
                          v .:? "aliases"     <*>
                          v .:? "commands"    <*>
                          v .:? "description" <*>
+                         v .:? "examples"    <*>
                          v .:? "install"     <*>
                          v .:? "path"        <*>
                          v .:  "synopsis"    <*>
