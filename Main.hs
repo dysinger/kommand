@@ -52,8 +52,8 @@ data Stack = Stack [Kommand] [String]
 -- args given at the command line.  Build a new Stack containing the
 -- Kommands, that matched args, plus the remainder of the args that
 -- didn't match.
-split :: Stack -> Stack
-split (Stack ks as) = Stack foundKommands leftOverArgs
+kmdStack :: Stack -> Stack
+kmdStack (Stack ks as) = Stack foundKommands leftOverArgs
   where
     (_, foundKommands, leftOverArgs) = foldl sort (Just ks, [], []) as
     sort (Nothing,    ks', as') a = (Nothing, ks', a:as')
@@ -98,7 +98,7 @@ main = do
     Left er  -> print er >> exitImmediately (ExitFailure 1)
     Right ks -> do
       as <- getArgs
-      let p@(Stack (k':ks') as') = split (Stack ks as)
+      let p@(Stack (k':ks') as') = kmdStack (Stack ks as)
 
       -- if the first kommand in the stack is a path
       --   then if --help flag was given
