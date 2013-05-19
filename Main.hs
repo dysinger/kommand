@@ -131,8 +131,8 @@ execute initialStack = do
     s                        -> run s
   where
     mainHelp = putStrLn "OHAI!"
-    stackHelp    (Stack []    _) = mzero
-    stackHelp s@ (Stack (k:_) _) = do
+    stackHelp   (Stack []    _) = mzero
+    stackHelp s@(Stack (k:_) _) = do
       case (_description k) of
         Just ls -> divider >> mapM_ putStrLn ls >> divider
         Nothing -> mzero
