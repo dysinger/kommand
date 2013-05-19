@@ -1,6 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 
 import           Control.Applicative
 import           Control.Monad
