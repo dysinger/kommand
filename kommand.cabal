@@ -31,4 +31,3 @@ executable k
                      , filepath
                      , process
                      , time
-                     , unix
