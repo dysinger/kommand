@@ -163,7 +163,7 @@ showKommands ks = do
 
 -- | Show help in the context of a Stack
 showHelp :: Stack -> IO ()
-showHelp s = showDescription s >> showExamples s
+showHelp s = showDescription s >> showSubKommands s >> showExamples s
 
 -- | Show a description if one exists for the current Stack
 showDescription :: Stack -> IO ()
@@ -172,6 +172,11 @@ showDescription (Stack (K{_description=Just ls}:_) _) = do
   mapM_ (putStrLn . (++) "  ") ls
   putStrLn "\n"
 showDescription _ = return ()
+
+-- | Show the sub Kommands if they exist for the current Stack
+showSubKommands :: Stack -> IO ()
+showSubKommands (Stack (K{_commands=Just ls}:_) _) = showKommands ls
+showSubKommands _ = return ()
 
 -- | Show the examples if they exist for the current Stack
 showExamples :: Stack -> IO ()
