@@ -69,7 +69,7 @@ data Stack = Stack [Kommand] [String] deriving Show
 -- matched args in the list (in order), plus the remainder of the args
 -- that didn't match.
 initialStack :: Stack -> Stack
-initialStack (Stack ks as) = Stack found left
+initialStack (Stack ks as) = Stack found (reverse left)
   where (_, found, left) = foldl reduceArgs (Just ks, [], []) as
 
 reduceArgs :: (Maybe [Kommand], [Kommand], [String])
