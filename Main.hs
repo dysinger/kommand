@@ -59,12 +59,12 @@ instance FromJSON Kommand where
 -- path isn't given then the kommand is a subcommand or flag.  In this
 -- case we print it's id.
 instance Show Kommand where
-  show (Kommand {_path = Nothing, _id = i}) = i
-  show (Kommand {_path = Just p}) = p
+  show (Kommand{_path=Nothing,_id=i}) = i
+  show (Kommand{_path=Just p}) = p
 
 matchKommand :: String -> Kommand -> Bool
-matchKommand x (Kommand {_aliases = Nothing, _id = i}) = i == x
-matchKommand x (Kommand {_aliases = Just xs, _id = i}) =
+matchKommand x (Kommand{_aliases=Nothing,_id=i}) = i == x
+matchKommand x (Kommand{_aliases=Just xs,_id=i}) =
   any ((==) (map toLower x)) (i:xs)
 
 internalKommands :: [Kommand]
@@ -158,14 +158,14 @@ showHelp :: Stack -> IO ()
 showHelp s = showDescription s >> showExamples s
 
 showDescription :: Stack -> IO ()
-showDescription (Stack (Kommand{_description = Just ls}:_) _) = do
+showDescription (Stack (Kommand{_description=Just ls}:_) _) = do
   putStrLn "\nDescription:\n"
   mapM_ (putStrLn . (++) "  ") ls
   putStrLn "\n"
 showDescription _ = return ()
 
 showExamples :: Stack -> IO ()
-showExamples (Stack (Kommand{_examples = Just ls}:_) _) = do
+showExamples (Stack (Kommand{_examples=Just ls}:_) _) = do
   putStrLn "\nExamples:\n"
   mapM_ (putStrLn . (++) "  ") ls
   putStrLn "\n"
