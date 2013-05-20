@@ -108,7 +108,8 @@ fetchKommands :: IO ()
 fetchKommands = do
   fname <- filename
   simpleHTTP req >>= getResponseBody >>= DBL.writeFile fname . DBLC.pack
-  where req = getRequest "http://s3.amazonaws.com/knewton-public-src/kommands.json"
+  where
+    req = getRequest "http://s3.amazonaws.com/knewton-public-src/kommands.json"
 
 -- | Define a Stack of Kommands and Strings
 data Stack = Stack [Kommand] [String] deriving Show
@@ -157,6 +158,7 @@ showKommands :: [Kommand] -> IO ()
 showKommands ks = do
   putStrLn "\nCommands:\n"
   mapM_ showKommand ks
+  putStr "\n"
   where
     showKommand (K{..}) =
       putStrLn $ "  " ++ _id ++ (replicate (20-length(_id)) ' ') ++ _synopsis
