@@ -62,6 +62,50 @@ instance Show Kommand where
   show (Kommand {_path = Nothing, _id = i}) = i
   show (Kommand {_path = Just p}) = p
 
+matchKommand :: String -> Kommand -> Bool
+matchKommand x (Kommand {_aliases = Nothing, _id = i}) = i == x
+matchKommand x (Kommand {_aliases = Just xs, _id = i}) =
+  any ((==) (map toLower x)) (i:xs)
+
+internalKommands :: [Kommand]
+internalKommands = [ Kommand { _id          = "help"
+                             , _aliases     = Just [ "-?", "-h", "--help" ]
+                             , _synopsis    = "Built in Help Kommand"
+                             , _commands    = Nothing
+                             , _description = Nothing
+                             , _examples    = Nothing
+                             , _path        = Nothing
+                             , _url         = Nothing } ]
+
+-- | Lazily keep the kommands json file in sync with what we can find
+-- on the internet.
+kommands :: IO (Either String [Kommand])
+kommands = do
+  fname  <- filename
+  exists <- doesFileExist fname
+  if (not exists)
+    then fetchKommands
+    else do rightNow <- getCurrentTime
+            modTime  <- getModificationTime fname
+            when (diffUTCTime rightNow modTime > 60*60)
+              fetchKommands
+  readKommands fname
+
+-- | Calculate the location of our cached json file.
+filename :: IO FilePath
+filename = do
+  home <- getHomeDirectory
+  return $ home </> ".kommands.json"
+
+readKommands :: FilePath -> IO (Either String [Kommand])
+readKommands fname = BS.readFile fname >>= return . eitherDecode
+
+fetchKommands :: IO ()
+fetchKommands =
+  -- FIXME inspect the response write the file from the response body
+  let req = getRequest "http://s3.amazonaws.com/knewton-public-src/kommands.json"
+  in simpleHTTP req >> return ()
+
 -- | Define a Stack of Kommands and Strings
 data Stack = Stack [Kommand] [String] deriving Show
 
@@ -84,11 +128,6 @@ reduceArgs (x, ks, as) a =
         (k:_) -> (_commands k, k:ks, as)
         _     -> (Nothing, ks, a:as)
 
-matchKommand :: String -> Kommand -> Bool
-matchKommand x (Kommand {_aliases = Nothing, _id = i}) = i == x
-matchKommand x (Kommand {_aliases = Just xs, _id = i}) =
-  any ((==) (map toLower x)) (i:xs)
-
 -- | Take a Stack and build a new Stack by popping Kommands onto the
 -- args list until we can find a Kommand that has an executable path.
 exeStack :: Stack -> Stack
@@ -96,33 +135,6 @@ exeStack (Stack [] _) = error "Kommand tree didn't have an executable path."
 exeStack s@(Stack (Kommand{_path=Just _}:_) _)      = s
 exeStack (Stack (k@(Kommand{_path=Nothing}):ks) as) =
   exeStack (Stack ks ((show k):as))
-
--- | Lazily keep the kommands json file in sync with what we can find
--- on the internet.
-kommands :: IO (Either String [Kommand])
-kommands = do
-  fname  <- filename
-  exists <- doesFileExist fname
-  if (not exists)
-    then fetchJSON
-    else do rightNow <- getCurrentTime
-            modTime  <- getModificationTime fname
-            when (diffUTCTime rightNow modTime > 60*60)
-              fetchJSON
-  readJSON
-  where
-    readJSON  = filename >>= BS.readFile >>= return . eitherDecode
-    -- FIXME inspect the response write the file from the response body
-    fetchJSON =
-      let req = getRequest "http://s3.amazonaws.com/knewton-public-src/kommands.json"
-      in -- simpleHTTP req
-         return ()
-
--- | Calculate the location of our cached json file.
-filename :: IO FilePath
-filename = do
-  home <- getHomeDirectory
-  return $ home </> ".kommands.json"
 
 -- | Route transforms the initial stack from args into Kommands.  It
 -- then routes the stack to the appropriate function.
@@ -166,13 +178,3 @@ main = do
   case result of -- JSON parse error
     Left  er -> hPutStrLn stderr er >> exitWith (ExitFailure 1)
     Right ks -> route . initialStack . Stack ks =<< getArgs
-
-internalKommands :: [Kommand]
-internalKommands = [ Kommand { _id          = "help"
-                             , _aliases     = Just [ "-?", "-h", "--help" ]
-                             , _synopsis    = "Built in Help Kommand"
-                             , _commands    = Nothing
-                             , _description = Nothing
-                             , _examples    = Nothing
-                             , _path        = Nothing
-                             , _url         = Nothing } ]
