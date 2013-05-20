@@ -94,7 +94,7 @@ matchKommand x (Kommand {_aliases = Just xs, _id = i}) =
 exeStack :: Stack -> Stack
 exeStack (Stack [] _) = error "Kommand tree didn't have an executable path."
 exeStack s@(Stack (Kommand{_path=Just _}:_) _)      = s
-exeStack (Stack (k@(Kommand{_path=Nothing}):ks) as) = 
+exeStack (Stack (k@(Kommand{_path=Nothing}):ks) as) =
   exeStack (Stack ks ((show k):as))
 
 -- | Lazily keep the kommands json file in sync with what we can find
