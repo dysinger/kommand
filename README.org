@@ -12,3 +12,16 @@
 * TODO check for chef & download/install if not present
 * TODO offer to run 'install' kommand attribute with chef-solo if command not present (& current version?)
 * TODO be super clear & helpful if a process exits abnormally
+
+* if the no kommands but still args run the first arg & pop the arg stack
+* if nothing is given then help
+* if the flag -? -h or --help then help
+* if the flag '-s' then search
+* if the first kommand in the stack is a path
+*** then
+***** if --help flag was given
+******* then print help
+******* else call the kommand with args
+*** else
+***** add the kommand to the stack of argsc
+***** and look at the parent kommand (tail)
