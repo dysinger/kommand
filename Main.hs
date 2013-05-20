@@ -141,19 +141,25 @@ exeStack (Stack (k@(K{_path=Nothing}):ks) as) =
   exeStack (Stack ks ((show k):as))
 
 -- | Run analyzes the stack & routes it to the appropriate function.
-run :: Stack -> IO ()
-run (Stack [] [])                     = showKommands
-run (Stack [] (a:as))                 = exitWith =<< rawSystem a as
-run (Stack ((K{_id="help"}):[]) _)    = showKommands
-run (Stack ((K{_id="help"}):ks) as)   = showHelp (Stack ks as)
-run (Stack (k:(K{_id="help"}):ks) as) = showHelp (Stack (k:ks) as)
-run s@(Stack (K{_path=Nothing}:[]) _) = showHelp s
-run s@(Stack (K{_path=Nothing}:_) _)  = run (exeStack s)
-run (Stack (k@K{_path=Just _}:_) as)  = exitWith =<< rawSystem (show k) as
+run :: [Kommand] -> Stack -> IO ()
+run ks   (Stack [] [])                     = showKommands ks
+run _    (Stack [] (a:as))                 = exitWith =<< rawSystem a as
+run ks   (Stack ((K{_id="help"}):[]) _)    = showKommands ks
+run _    (Stack ((K{_id="help"}):ks) as)   = showHelp (Stack ks as)
+run _    (Stack (k:(K{_id="help"}):ks) as) = showHelp (Stack (k:ks) as)
+run _  s@(Stack (K{_path=Nothing}:[]) _)   = showHelp s
+run ks s@(Stack (K{_path=Nothing}:_) _)    = run ks (exeStack s)
+run _    (Stack (k@K{_path=Just _}:_) as)  = exitWith =<< rawSystem (show k) as
 
 -- | Show the list of Kommands & their synopsis - 1 per line
-showKommands :: IO ()
-showKommands = putStrLn "OHAI!" -- TODO list all Kommands + Synopsis of each
+showKommands :: [Kommand] -> IO ()
+showKommands ks = do
+  putStrLn "\nCommands:\n"
+  mapM_ showKommand ks
+  putStrLn "\n"
+  where
+    showKommand (K{..}) =
+      putStrLn $ "  " ++ _id ++ (replicate (20-length(_id)) ' ') ++ _synopsis
 
 -- | Show help in the context of a Stack
 showHelp :: Stack -> IO ()
@@ -181,4 +187,4 @@ main = do
   result <- kommands
   case result of -- JSON parse error
     Left  er -> hPutStrLn stderr er >> exitWith (ExitFailure 1)
-    Right ks -> run . initialStack . Stack ks =<< getArgs
+    Right ks -> run ks . initialStack . Stack ks =<< getArgs
