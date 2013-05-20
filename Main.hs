@@ -21,7 +21,8 @@ provide Bash & Zsh completion of the commands it knows about
 import           Control.Applicative
 import           Control.Monad
 import           Data.Aeson
-import qualified Data.ByteString.Lazy as BS
+import qualified Data.ByteString.Lazy       as DBL
+import qualified Data.ByteString.Lazy.Char8 as DBLC
 import           Data.Char
 import           Data.Time.Clock
 import           Network.HTTP
@@ -101,13 +102,13 @@ filename = do
 
 -- | Read the kommands file from disk & parse the JSON
 readKommands :: FilePath -> IO (Either String [Kommand])
-readKommands fname = BS.readFile fname >>= return . eitherDecode
+readKommands fname = DBL.readFile fname >>= return . eitherDecode
 
 fetchKommands :: IO ()
-fetchKommands =
-  -- FIXME inspect the response write the file from the response body
-  let req = getRequest "http://s3.amazonaws.com/knewton-public-src/kommands.json"
-  in simpleHTTP req >> return ()
+fetchKommands = do
+  fname <- filename
+  simpleHTTP req >>= getResponseBody >>= DBL.writeFile fname . DBLC.pack
+  where req = getRequest "http://s3.amazonaws.com/knewton-public-src/kommands.json"
 
 -- | Define a Stack of Kommands and Strings
 data Stack = Stack [Kommand] [String] deriving Show
@@ -156,21 +157,23 @@ showKommands :: [Kommand] -> IO ()
 showKommands ks = do
   putStrLn "\nCommands:\n"
   mapM_ showKommand ks
-  putStrLn "\n"
   where
     showKommand (K{..}) =
       putStrLn $ "  " ++ _id ++ (replicate (20-length(_id)) ' ') ++ _synopsis
 
 -- | Show help in the context of a Stack
 showHelp :: Stack -> IO ()
-showHelp s = showDescription s >> showSubKommands s >> showExamples s
+showHelp s = do
+  showDescription s
+  showSubKommands s
+  showExamples s
+  putStr "\n"
 
 -- | Show a description if one exists for the current Stack
 showDescription :: Stack -> IO ()
 showDescription (Stack (K{_description=Just ls}:_) _) = do
   putStrLn "\nDescription:\n"
   mapM_ (putStrLn . (++) "  ") ls
-  putStrLn "\n"
 showDescription _ = return ()
 
 -- | Show the sub Kommands if they exist for the current Stack
@@ -183,7 +186,6 @@ showExamples :: Stack -> IO ()
 showExamples (Stack (K{_examples=Just ls}:_) _) = do
   putStrLn "\nExamples:\n"
   mapM_ (putStrLn . (++) "  ") ls
-  putStrLn "\n"
 showExamples _ = return ()
 
 -- | Main program entry point.
