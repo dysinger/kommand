@@ -168,13 +168,11 @@ main = do
     Right ks -> route . initialStack . Stack ks =<< getArgs
 
 internalKommands :: [Kommand]
-internalKommands = [
-  Kommand { _id          = "help"
-          , _aliases     = Just [ "-?", "-h", "--help" ]
-          , _synopsis    = "Built in Help Kommand"
-          , _commands    = Nothing
-          , _description = Nothing
-          , _examples    = Nothing
-          , _path        = Nothing
-          , _url         = Nothing }
-  ]
+internalKommands = [ Kommand { _id          = "help"
+                             , _aliases     = Just [ "-?", "-h", "--help" ]
+                             , _synopsis    = "Built in Help Kommand"
+                             , _commands    = Nothing
+                             , _description = Nothing
+                             , _examples    = Nothing
+                             , _path        = Nothing
+                             , _url         = Nothing } ]
