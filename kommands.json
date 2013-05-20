@@ -32,5 +32,25 @@
             "continues to enjoy widespread adoption in both the open source arena",
             "and the corporate world."
         ]
+    },{
+        "id"          : "s3",
+        "synopsis"    : "s3 command line tools built at knewton",
+        "commands"    : [{
+            "id"       : "get",
+            "synopsis" : "Get a file from s3",
+            "aliases"  : ["g"],
+            "path"     : "/opt/virtualenvs/k/sysengtools/bin/s3-get",
+            "examples" : [
+                "k s3 get -e utility -b knewton-public-src -f k kommand/mac/k"
+            ]
+        },{
+            "id"       : "put",
+            "synopsis" : "Put a file on s3",
+            "aliases"  : ["p"],
+            "path"     : "/opt/virtualenvs/k/sysengtools/bin/s3-get",
+            "examples" : [
+                "k s3 put -e utility -b knewton-public-src -i kommands.json kommands.json"
+            ]
+        }]
     }
 ]
