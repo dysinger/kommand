@@ -63,33 +63,36 @@ instance Show Kommand where
   show (Kommand {_path = Just p}) = p
 
 -- | Define a Stack of Kommands and Strings
-data Stack = Stack [Kommand] [String]
+data Stack = Stack [Kommand] [String] deriving Show
 
--- | Take a Stack and build a new Stack containing the Kommands (in
--- order), that matched args in the list (in order), plus the
--- remainder of the args that didn't match.
-argsToKommands :: Stack -> Stack
-argsToKommands (Stack ks as) = Stack foundKommands leftOverArgs
+-- | Build a new Stack containing the Kommands (in order), that
+-- matched args in the list (in order), plus the remainder of the args
+-- that didn't match.
+initialStack :: Stack -> Stack
+initialStack (Stack ks as) = Stack foundKs leftOver
   where
-    (_, foundKommands, leftOverArgs) = foldl sort (Just ks, [], []) as
-    sort (Nothing,    ks', as') a = (Nothing, ks', a:as')
+    (_, foundKs, leftOver) = foldl sort (Just ks, [], []) as
+    sort (Nothing, ks', as') a =
+      case (filter (match a) internalKommands) of
+        (k:_) -> (Nothing, k:ks', as')
+        _     -> (Nothing, ks', a:as')
     sort (Just leafs, ks', as') a =
-      case (filter (match a) leafs) of
-        []    -> (Nothing,       ks', a:as')
-        (k:_) -> (_commands k, k:ks',   as')
-    match x (Kommand {_aliases = Nothing, ..}) = _id == x
-    match x (Kommand {_aliases = Just xs, ..}) =
-      any ((==) (map toLower x)) (_id:xs)
+      case (filter (match a) internalKommands) of
+        (k:_) -> (Just leafs, k:ks', as')
+        _     -> case (filter (match a) leafs) of
+          (k:_) -> (_commands k, k:ks', as')
+          _     -> (Nothing, ks', a:as')
+    match x (Kommand {_aliases = Nothing, _id = i}) = i == x
+    match x (Kommand {_aliases = Just xs, _id = i}) =
+      any ((==) (map toLower x)) (i:xs)
 
 -- | Take a Stack and build a new Stack by popping Kommands onto the
 -- args list until we can find a Kommand that has an executable path.
-findExecutable :: Stack -> Stack
-findExecutable _ = undefined
-
--- | Take a Stack and build a new Stack by popping Kommands onto the
--- args list until we can find a Kommand that has a description.
-findHelp :: Stack -> Stack
-findHelp _ = undefined
+exeStack :: Stack -> Stack
+exeStack (Stack [] _) = error "Kommand tree didn't have an executable path."
+exeStack s@(Stack (Kommand{_path=Just _}:_) _)      = s
+exeStack (Stack (k@(Kommand{_path=Nothing}):ks) as) = 
+  exeStack (Stack ks ((show k):as))
 
 -- | Lazily keep the kommands json file in sync with what we can find
 -- on the internet.
@@ -109,7 +112,8 @@ kommands = do
     -- FIXME inspect the response write the file from the response body
     fetchJSON =
       let req = getRequest "http://s3.amazonaws.com/knewton-public-src/kommands.json"
-      in simpleHTTP req >> return ()
+      in -- simpleHTTP req
+         return ()
 
 -- | Calculate the location of our cached json file.
 filename :: IO FilePath
@@ -117,38 +121,59 @@ filename = do
   home <- getHomeDirectory
   return $ home </> ".kommands.json"
 
--- | Execute transforms the initial stack from args into Kommands.  It
+-- | Route transforms the initial stack from args into Kommands.  It
 -- then routes the stack to the appropriate function.
-execute :: Stack -> IO ()
-execute initialStack = do
-  case (argsToKommands initialStack) of
-    (Stack [] [])            -> mainHelp
-    (Stack [] ("-h":_))      -> mainHelp
-    (Stack [] ("--help":_))  -> mainHelp
-    s@(Stack [] _)           -> run s
-    s@(Stack _ ("-h":_))     -> stackHelp s
-    s@(Stack _ ("--help":_)) -> stackHelp s
-    s                        -> run s
+route :: Stack -> IO ()
+route (Stack [] []) = showKommands
+route (Stack ((Kommand{_id="help"}):k:ks) as) = showHelp (Stack (k:ks) as)
+route (Stack (k:(Kommand{_id="help"}):ks) as) = showHelp (Stack (k:ks) as)
+route s = run s
+
+showKommands :: IO ()
+showKommands = putStrLn "OHAI!" -- TODO list all Kommands + Synopsis of each
+
+showHelp :: Stack -> IO ()
+showHelp s = showDescription s >> showExamples s
+
+showDescription :: Stack -> IO ()
+showDescription (Stack (Kommand{_description = Just ls}:_) _) = do
+  putStrLn "\nDescription:\n"
+  mapM_ (putStrLn . (++) "  ") ls
+  putStrLn "\n"
+showDescription _ = return ()
+
+showExamples :: Stack -> IO ()
+showExamples (Stack (Kommand{_examples = Just ls}:_) _) = do
+  putStrLn "\nExamples:\n"
+  mapM_ (putStrLn . (++) "  ") ls
+  putStrLn "\n"
+showExamples _ = return ()
+
+run :: Stack -> IO ()
+run s = do
+  case (exeStack s) of
+    Stack [] []     -> return ()
+    Stack [] (a:as) -> runProcess a as n n n n n >>= waitForProcess >>= exitWith
+    Stack (k:_) as  -> runProcess (show k) as n n n n n >>= waitForProcess >>= exitWith
   where
-    mainHelp = putStrLn "OHAI!"
-    stackHelp   (Stack []    _) = mzero
-    stackHelp s@(Stack (k:_) _) = do
-      case (_description k) of
-        Just ls -> divider >> mapM_ putStrLn ls
-        Nothing -> mzero
-      case (_examples k) of
-        Just ls -> divider >> mapM_ putStrLn ls
-        Nothing -> mzero
-      divider >> run s
-    divider = putStrLn $ "\n" ++ replicate 80 '-' ++ "\n"
-    run (Stack []    _ ) = mzero
-    run (Stack (k:_) as) = let n = Nothing in
-      runProcess (show k) as n n n n n >>= waitForProcess >>= exitWith
+    n = Nothing
 
 -- | Main program entry point.
 main :: IO ()
 main = do
   result <- kommands
   case result of -- JSON parse error
-    Left er  -> hPutStrLn stderr er >> exitWith (ExitFailure 1)
-    Right ks -> execute . Stack ks =<< getArgs
+    Left  er -> hPutStrLn stderr er >> exitWith (ExitFailure 1)
+    Right ks -> route . initialStack . Stack ks =<< getArgs
+
+internalKommands :: [Kommand]
+internalKommands = [
+  Kommand { _id          = "help"
+          , _aliases     = Just [ "-?", "-h", "--help" ]
+          , _synopsis    = "Built in Help Kommand"
+          , _commands    = Nothing
+          , _description = Nothing
+          , _examples    = Nothing
+          , _path        = Nothing
+          , _url         = Nothing }
+  ]
