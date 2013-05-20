@@ -1,34 +1,36 @@
 [
     {
         "id"          : "git",
+        "synopsis"    : "Distributed version control system",
         "aliases"     : ["g"],
-        "commands"    : [{
-            "id"          : "checkout",
-            "aliases"     : ["c", "co"],
-            "synopsis"    : "Checkout a branch or paths to the working tree",
-            "url"         : "http://git-scm.com/docs/git-checkout"
-        }],
+        "path"        : "/usr/bin/git",
+        "url"         : "http://git-scm.com/",
         "description" : [
             "Git is a free and open source distributed version control system",
             "designed to handle everything from small to very large projects with",
             "speed and efficiency."
         ],
-        "install"     : "sudo chef-solo -o 'recipe[git]'",
-        "path"        : "/usr/bin/git",
-        "synopsis"    : "Distributed version control system",
-        "url"         : "http://git-scm.com/"
+        "commands"    : [{
+            "id"       : "checkout",
+            "aliases"  : ["c", "co"],
+            "synopsis" : "Checkout a branch or paths to the working tree",
+            "url"      : "http://git-scm.com/docs/git-checkout",
+            "examples" : [
+                "git checkout -b mybranch",
+                "git checkout -b mybranch origin/develop"
+            ]
+        }]
     },{
         "id"          : "svn",
+        "synopsis"    : "Centralized version control system",
+        "path"        : "/usr/bin/svn",
+        "url"         : "http://subversion.tigris.org/",
         "description" : [
             "Subversion is an open source version control system. Founded in 2000",
             "by CollabNet, Inc., the Subversion project and software have seen",
             "incredible success over the past decade. Subversion has enjoyed and",
             "continues to enjoy widespread adoption in both the open source arena",
             "and the corporate world."
-        ],
-        "install"     : "sudo chef-solo -o 'recipe[subversion]'",
-        "path"        : "/usr/bin/svn",
-        "synopsis"    : "Centralized version control system",
-        "url"         : "http://subversion.tigris.org/"
+        ]
     }
 ]
