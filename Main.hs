@@ -25,12 +25,12 @@ import qualified Data.ByteString.Lazy as BS
 import           Data.Char
 import           Data.Time.Clock
 import           Network.HTTP
+import           System.Cmd
 import           System.Directory
 import           System.Environment
 import           System.Exit
 import           System.FilePath
 import           System.IO
-import           System.Process
 
 -- | The Kommand data type contains the attributes of each Kommand.
 data Kommand = Kommand { _id          :: String
@@ -131,7 +131,13 @@ route (Stack [] []) = showKommands
 route (Stack ((Kommand{_id="help"}):[]) _)    = showKommands
 route (Stack ((Kommand{_id="help"}):k:ks) as) = showHelp (Stack (k:ks) as)
 route (Stack (k:(Kommand{_id="help"}):ks) as) = showHelp (Stack (k:ks) as)
-route s = run s
+route s = putStrLn (show s) >> run s
+
+run :: Stack -> IO ()
+run (Stack [] [])     = mzero
+run (Stack [] (a:as)) = rawSystem a as          >>= exitWith
+run s                 = rawSystem (show k') as' >>= exitWith
+  where (Stack (k':_) as') = exeStack s
 
 showKommands :: IO ()
 showKommands = putStrLn "OHAI!" -- TODO list all Kommands + Synopsis of each
@@ -152,15 +158,6 @@ showExamples (Stack (Kommand{_examples = Just ls}:_) _) = do
   mapM_ (putStrLn . (++) "  ") ls
   putStrLn "\n"
 showExamples _ = return ()
-
-run :: Stack -> IO ()
-run s = do
-  case (exeStack s) of
-    Stack [] []     -> return ()
-    Stack [] (a:as) -> runProcess a as n n n n n >>= waitForProcess >>= exitWith
-    Stack (k:_) as  -> runProcess (show k) as n n n n n >>= waitForProcess >>= exitWith
-  where
-    n = Nothing
 
 -- | Main program entry point.
 main :: IO ()
