@@ -69,22 +69,25 @@ data Stack = Stack [Kommand] [String] deriving Show
 -- matched args in the list (in order), plus the remainder of the args
 -- that didn't match.
 initialStack :: Stack -> Stack
-initialStack (Stack ks as) = Stack foundKs leftOver
-  where
-    (_, foundKs, leftOver) = foldl sort (Just ks, [], []) as
-    sort (Nothing, ks', as') a =
-      case (filter (match a) internalKommands) of
-        (k:_) -> (Nothing, k:ks', as')
-        _     -> (Nothing, ks', a:as')
-    sort (Just leafs, ks', as') a =
-      case (filter (match a) internalKommands) of
-        (k:_) -> (Just leafs, k:ks', as')
-        _     -> case (filter (match a) leafs) of
-          (k:_) -> (_commands k, k:ks', as')
-          _     -> (Nothing, ks', a:as')
-    match x (Kommand {_aliases = Nothing, _id = i}) = i == x
-    match x (Kommand {_aliases = Just xs, _id = i}) =
-      any ((==) (map toLower x)) (i:xs)
+initialStack (Stack ks as) = Stack found left
+  where (_, found, left) = foldl reduceArgs (Just ks, [], []) as
+
+reduceArgs :: (Maybe [Kommand], [Kommand], [String])
+           -> String
+           -> (Maybe [Kommand], [Kommand], [String])
+reduceArgs (x, ks, as) a =
+  case (filter (matchKommand a) internalKommands) of
+    (k:_) -> (x, k:ks, as)
+    _     -> case x of
+      Nothing -> (Nothing, ks, a:as)
+      Just y  -> case (filter (matchKommand a) y) of
+        (k:_) -> (_commands k, k:ks, as)
+        _     -> (Nothing, ks, a:as)
+
+matchKommand :: String -> Kommand -> Bool
+matchKommand x (Kommand {_aliases = Nothing, _id = i}) = i == x
+matchKommand x (Kommand {_aliases = Just xs, _id = i}) =
+  any ((==) (map toLower x)) (i:xs)
 
 -- | Take a Stack and build a new Stack by popping Kommands onto the
 -- args list until we can find a Kommand that has an executable path.
@@ -125,6 +128,7 @@ filename = do
 -- then routes the stack to the appropriate function.
 route :: Stack -> IO ()
 route (Stack [] []) = showKommands
+route (Stack ((Kommand{_id="help"}):[]) _)    = showKommands
 route (Stack ((Kommand{_id="help"}):k:ks) as) = showHelp (Stack (k:ks) as)
 route (Stack (k:(Kommand{_id="help"}):ks) as) = showHelp (Stack (k:ks) as)
 route s = run s
