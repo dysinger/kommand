@@ -72,7 +72,7 @@ matchKommand x (K{_aliases=Just xs,_id=i}) =
 -- | Help constructor
 help :: Kommand
 help = K { _id          = "help"
-         , _aliases     = Just [ "-?", "-h", "--help" ]
+         , _aliases     = Nothing
          , _synopsis    = "Built in Help Kommand"
          , _commands    = Nothing
          , _description = Nothing
