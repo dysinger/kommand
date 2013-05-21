@@ -63,22 +63,27 @@ instance Show Kommand where
   show (K{_path=Nothing,_id=i}) = i
   show (K{_path=Just p}) = p
 
+-- | Does this lowercased string match a lowercase Kommand's _id ?
 matchKommand :: String -> Kommand -> Bool
 matchKommand x (K{_aliases=Nothing,_id=i}) = i == x
 matchKommand x (K{_aliases=Just xs,_id=i}) =
-  any ((==) (map toLower x)) (i:xs)
+  any ((==) (map toLower x) . (map toLower)) (i:xs)
+
+-- | Help constructor
+help :: Kommand
+help = K { _id          = "help"
+         , _aliases     = Just [ "-?", "-h", "--help" ]
+         , _synopsis    = "Built in Help Kommand"
+         , _commands    = Nothing
+         , _description = Nothing
+         , _examples    = Nothing
+         , _path        = Nothing
+         , _url         = Nothing }
 
 -- | Produce a list of internal Kommands.  These are outside of the
 -- JSON spec & can be interposed with the tree of JSON Kommands.
 internalKommands :: [Kommand]
-internalKommands = [ K { _id          = "help"
-                       , _aliases     = Just [ "-?", "-h", "--help" ]
-                       , _synopsis    = "Built in Help Kommand"
-                       , _commands    = Nothing
-                       , _description = Nothing
-                       , _examples    = Nothing
-                       , _path        = Nothing
-                       , _url         = Nothing } ]
+internalKommands = [ help ]
 
 -- | Lazily keep the kommands JSON file in sync with what we can find
 -- on the internet.
@@ -134,6 +139,16 @@ reduceArgs (x, Stack ks as) a =
         (k:_) -> (_commands k, Stack (k:ks) as)
         _     -> (Nothing, Stack ks (a:as))
 
+-- | Take a Stack and build a new Stack by replacing all help Kommands
+-- with a single help Kommand at the top of the stack (in case someone
+-- types `k -? -h help --help XYZ help`)
+helpStack :: Stack -> Stack
+helpStack s@(Stack ks as) =
+  let noHelp = filter ((/=) "help" . _id) ks in
+  if (length noHelp < length ks)
+     then (Stack (help:noHelp) as)
+     else s
+
 -- | Take a Stack and build a new Stack by popping Kommands onto the
 -- args list until we can find a Kommand that has an executable path.
 exeStack :: Stack -> Stack
@@ -144,12 +159,11 @@ exeStack (Stack (k@(K{_path=Nothing}):ks) as) =
 
 -- | Run analyzes the stack & routes it to the appropriate function.
 run :: [Kommand] -> Stack -> IO ()
-run ks   (Stack [] [])                     = showKommands ks
+run ks   (Stack [] [])                     = showKommands ks        >> putStr "\n"
 run _    (Stack [] (a:as))                 = exitWith =<< rawSystem a as
-run ks   (Stack ((K{_id="help"}):[]) _)    = showKommands ks
-run _    (Stack ((K{_id="help"}):ks) as)   = showHelp (Stack ks as)
-run _    (Stack (k:(K{_id="help"}):ks) as) = showHelp (Stack (k:ks) as)
-run _  s@(Stack (K{_path=Nothing}:[]) _)   = showHelp s
+run ks   (Stack ((K{_id="help"}):[]) _)    = showKommands ks        >> putStr "\n"
+run _    (Stack ((K{_id="help"}):ks) as)   = showHelp (Stack ks as) >> putStr "\n"
+run _  s@(Stack (K{_path=Nothing}:[]) _)   = showHelp s             >> putStr "\n"
 run ks s@(Stack (K{_path=Nothing}:_) _)    = run ks (exeStack s)
 run _    (Stack (k@K{_path=Just _}:_) as)  = exitWith =<< rawSystem (show k) as
 
@@ -158,7 +172,6 @@ showKommands :: [Kommand] -> IO ()
 showKommands ks = do
   putStrLn "\nCommands:\n"
   mapM_ showKommand ks
-  putStr "\n"
   where
     showKommand (K{..}) =
       putStrLn $ "  " ++ _id ++ (replicate (20-length(_id)) ' ') ++ _synopsis
@@ -169,7 +182,6 @@ showHelp s = do
   showDescription s
   showSubKommands s
   showExamples s
-  putStr "\n"
 
 -- | Show a description if one exists for the current Stack
 showDescription :: Stack -> IO ()
@@ -196,4 +208,4 @@ main = do
   result <- kommands
   case result of -- JSON parse error
     Left  er -> hPutStrLn stderr er >> exitWith (ExitFailure 1)
-    Right ks -> run ks . initialStack . Stack ks =<< getArgs
+    Right ks -> run ks . helpStack . initialStack . Stack ks =<< getArgs
