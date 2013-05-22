@@ -75,7 +75,7 @@ instance Show (Arg String)  where show (AS s) = show s
 data Stack = Stack [Arg Kommand] [Arg String]
 
 instance Show Stack where
-  show (Stack ks as) = intercalate " " (map show ks ++ map show as)
+  show (Stack ks as) = intercalate " " (map show (reverse ks) ++ map show as)
 
 -- | Does this lowercased string match a lowercase Kommand's _id ?
 matchKommand :: String -> Kommand -> Bool
