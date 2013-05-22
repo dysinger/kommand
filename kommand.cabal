@@ -13,13 +13,13 @@ cabal-version:       >=1.14
 executable k
   main-is:             Main.hs
   default-language:    Haskell2010
-  default-extensions:  RankNTypes
-                       TemplateHaskell
+  default-extensions:  FlexibleInstances
+                       OverloadedStrings
+                       RankNTypes
+                       RecordWildCards
                        TypeFamilies
-  ghc-options:         -Odph
-                       -Wall
+  ghc-options:         -Wall
                        -fllvm
-                       -optlo-O3
                        -rtsopts
                        -static
                        -threaded
