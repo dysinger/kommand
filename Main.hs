@@ -168,18 +168,30 @@ exeStack s@(Stack (AK K{_path=Just _}:_) _) = s
 exeStack (Stack (AK K{_path=Nothing,_id=i}:ks) as) =
   exeStack (Stack ks ((AS i):as))
 
--- | Run analyzes the stack & routes it to the appropriate function.
-run :: [Kommand] -> Stack -> IO ()
-run ks   (Stack [] [])                         = listKommands ks      
-run _    (Stack [] (a:as))                     = runRawSystem a as
-run ks   (Stack (AK K{_id="help"}:[]) _)       = listKommands ks      
-run _    (Stack (AK K{_id="help"}:ks) as)      = showHelp (Stack ks as) 
-run _  s@(Stack (AK K{_path=Nothing}:[]) _)    = showHelp s     
-run ks s@(Stack (AK K{_path=Nothing}:_) _)     = run ks (exeStack s)
-run _    (Stack (k@(AK K{_path=Just _}):_) as) = runRawSystem k as
+-- | Route analyzes the stack & routes it to the appropriate function.
+route :: [Kommand] -> Stack -> IO ()
+route ks   (Stack [] [])                       = listKommands ks
+route ks   (Stack (AK K{_id="help"}:[]) _)     = listKommands ks
+route _    (Stack (AK K{_id="help"}:ks) as)    = showHelp (Stack ks as)
+route _  s@(Stack (AK K{_path=Nothing}:[]) _)  = showHelp s
+route ks s@(Stack (AK K{_path=Nothing}:_) _)   = route ks (exeStack s)
+route _    (Stack [] (a:as))                   = run a as
+route _    (Stack (AK k@K{_path=Just _}:_) as) = run k as
 
-runRawSystem :: forall a b c. Show a => Show b => a -> [b] -> IO c
-runRawSystem a as = return =<< exitWith =<< rawSystem (show a) (map show as)
+-- | Runs the command with specified arguments.  Stack is passed along
+-- for debugging if the command didn't work.
+run :: forall a b c. Show a => Show b => a -> [b] -> IO c
+run a as = do
+  code <- rawSystem (show a) (map show as)
+  case code of
+    ExitSuccess     -> exitWith ExitSuccess
+    (ExitFailure c) -> do
+      let bar = (replicate 80 '-')
+      hPutStrLn stderr $ bar
+      hPutStrLn stderr $ intercalate " " (show a:map show as)
+      hPutStrLn stderr $ "^^^^^ command exited with code " ++ show c
+      hPutStrLn stderr $ bar
+      exitWith code
 
 -- | List all the Kommands given
 listKommands :: [Kommand] -> IO ()
@@ -224,4 +236,4 @@ main = do
   result <- kommands
   case result of -- JSON parse error
     Left  er -> hPutStrLn stderr er >> exitWith (ExitFailure 1)
-    Right ks -> run ks . cleanHelpArgs . initialStack ks =<< getArgs
+    Right ks -> route ks . cleanHelpArgs . initialStack ks =<< getArgs
