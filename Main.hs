@@ -62,20 +62,17 @@ instance FromJSON Kommand where
   parseJSON _          = mzero
 
 instance Show Kommand where
-  show (K{_path=Nothing,_id=i}) = show i
-  show (K{_path=Just p})        = show p
+  show (K{_path=Nothing,_id=i}) = i
+  show (K{_path=Just p})        = p
 
 data family   Arg a
 data instance Arg Kommand = AK Kommand
 data instance Arg String  = AS String
 
 instance Show (Arg Kommand) where show (AK k) = show k
-instance Show (Arg String)  where show (AS s) = show s
+instance Show (Arg String)  where show (AS s) = s
 
 data Stack = Stack [Arg Kommand] [Arg String]
-
-instance Show Stack where
-  show (Stack ks as) = intercalate " " (map show (reverse ks) ++ map show as)
 
 -- | Does this lowercased string match a lowercase Kommand's _id ?
 matchKommand :: String -> Kommand -> Bool
