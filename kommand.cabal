@@ -1,28 +1,18 @@
 name:                kommand
 version:             0.1.0.0
 synopsis:            CLI Help & Discovery for Teamwork
-homepage:            http://github.com/Knewton/kommand
 license:             OtherLicense
 license-file:        LICENSE
+homepage:            http://github.com/dysinger/kommand
 author:              Tim Dysinger
-maintainer:          tim@knewton.com
-category:            System
+maintainer:          tim@dysinger.net
 build-type:          Simple
-cabal-version:       >=1.14
+cabal-version:       >=1.16
 
 executable k
   main-is:             Main.hs
   default-language:    Haskell2010
-  default-extensions:  FlexibleInstances
-                       OverloadedStrings
-                       RankNTypes
-                       RecordWildCards
-                       TypeFamilies
-  ghc-options:         -Wall
-                       -fllvm
-                       -rtsopts
-                       -static
-                       -threaded
+  ghc-options:         -Wall -debug -rtsopts -threaded
   build-depends:       base
                      , HTTP
                      , aeson

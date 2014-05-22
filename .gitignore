@@ -1,2 +1,5 @@
+*flymake.hs
+/.cabal-sandbox/
 /cabal-dev
+/cabal.sandbox.config
 /dist

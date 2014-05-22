@@ -31,12 +31,12 @@ import           Data.Char
 import           Data.List
 import           Data.Time.Clock
 import           Network.HTTP
-import           System.Cmd
 import           System.Directory
 import           System.Environment
 import           System.Exit
 import           System.FilePath
 import           System.IO
+import           System.Process
 
 -- | The Kommand data type contains the attributes of each Kommand.
 data Kommand = K { _id          :: String
